@@ -1,14 +1,14 @@
-import { ChatParams, ChatResponse } from '@/types/chat'
+import { ChatParams } from '@/types/chat'
 
 class ApiClient {
   private baseUrl = '/api'
 
   /**
-   * 发送对话请求
+   * 发送对话请求（流式）
    * @param params 对话参数
-   * @returns 对话响应
+   * @returns Response 对象（包含流式数据）
    */
-  async fetchChat(params: ChatParams): Promise<ChatResponse> {
+  async fetchChat(params: ChatParams): Promise<Response> {
     const response = await fetch(`${this.baseUrl}/chat`, {
       method: 'POST',
       headers: {
@@ -22,7 +22,7 @@ class ApiClient {
       throw new Error(error.error || `API Error: ${response.statusText}`)
     }
 
-    return response.json()
+    return response
   }
 }
 

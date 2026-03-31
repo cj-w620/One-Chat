@@ -31,7 +31,44 @@ class SiliconFlowClient {
   }
 
   /**
-   * 调用对话 API
+   * 调用对话 API（流式）
+   */
+  async chatStream(params: {
+    model: string
+    messages: Message[]
+  }): Promise<ReadableStream> {
+    const requestBody: ChatCompletionParams = {
+      model: params.model,
+      messages: params.messages.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      })),
+      stream: true,
+    }
+
+    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    })
+
+    if (!response.ok) {
+      const error = await response.text()
+      throw new Error(`SiliconFlow API Error: ${response.status} - ${error}`)
+    }
+
+    if (!response.body) {
+      throw new Error('Response body is null')
+    }
+
+    return response.body
+  }
+
+  /**
+   * 调用对话 API（非流式，保留用于兼容）
    */
   async chat(params: {
     model: string

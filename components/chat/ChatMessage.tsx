@@ -2,12 +2,14 @@
 
 import { Message } from '@/types/chat'
 import { cn } from '@/lib/utils'
+import { StreamingText } from './StreamingText'
 
 interface ChatMessageProps {
   message: Message
+  isStreaming?: boolean
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
+export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) {
   const isUser = message.role === 'user'
 
   return (
@@ -26,7 +28,11 @@ export function ChatMessage({ message }: ChatMessageProps) {
         )}
       >
         <p className="text-sm whitespace-pre-wrap break-words">
-          {message.content}
+          {isUser ? (
+            message.content
+          ) : (
+            <StreamingText content={message.content} isStreaming={isStreaming} />
+          )}
         </p>
       </div>
     </div>

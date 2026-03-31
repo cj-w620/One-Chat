@@ -17,19 +17,12 @@ export default function Home() {
 
       {/* Chat Area */}
       <div className="flex-1 overflow-hidden flex flex-col">
-        <ChatList messages={messages} />
+        <ChatList messages={messages} isLoading={isLoading} />
 
         {/* Error Message */}
         {error && (
           <div className="px-4 py-2 bg-destructive/10 text-destructive text-sm">
             {error}
-          </div>
-        )}
-
-        {/* Loading Indicator */}
-        {isLoading && (
-          <div className="px-4 py-2 text-sm text-muted-foreground">
-            AI 正在思考...
           </div>
         )}
       </div>

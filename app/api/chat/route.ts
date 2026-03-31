@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { chatService } from '@/server/services/chatService'
-import { Message } from '@/types/chat'
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,23 +15,19 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 调用服务层
-    const response = await chatService.chat({
+    // 调用服务层获取流式响应
+    const stream = await chatService.streamChat({
       messages,
       model,
     })
 
-    // 创建 AI 消息
-    const aiMessage: Message = {
-      id: Date.now().toString(),
-      role: 'assistant',
-      content: response.content,
-      createdAt: new Date(),
-    }
-
-    // 返回响应
-    return NextResponse.json({
-      message: aiMessage,
+    // 返回流式响应
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
     })
   } catch (error) {
     console.error('Chat API Error:', error)
