@@ -1,23 +1,50 @@
+/**
+ * 聊天 Hook
+ */
+
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Message } from '@/types/chat'
 import { apiClient } from '@/client/api-client'
+import { useConversationStore } from '@/store/conversationStore'
 
 export function useChat() {
+  const { currentId, messages: storeMessages, loadMessages } =
+    useConversationStore()
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // 当切换会话时，加载历史消息
+  useEffect(() => {
+    if (currentId) {
+      loadMessages(currentId)
+    }
+  }, [currentId, loadMessages])
+
+  // 同步 store 中的消息到本地状态
+  useEffect(() => {
+    setMessages(storeMessages)
+  }, [storeMessages])
+
   const sendMessage = async (content: string) => {
+    if (!currentId) {
+      setError('请先创建或选择一个会话')
+      return
+    }
+
     setIsLoading(true)
     setError(null)
 
     // 创建用户消息
     const userMessage: Message = {
       id: Date.now().toString(),
+      conversationId: currentId,
       role: 'user',
       content,
+      type: 'text',
+      imageUrl: null,
       createdAt: new Date(),
     }
 
@@ -28,8 +55,11 @@ export function useChat() {
     const aiMessageId = (Date.now() + 1).toString()
     const aiMessage: Message = {
       id: aiMessageId,
+      conversationId: currentId,
       role: 'assistant',
       content: '',
+      type: 'text',
+      imageUrl: null,
       createdAt: new Date(),
     }
 
@@ -40,6 +70,7 @@ export function useChat() {
       // 调用 API 获取流式响应
       const response = await apiClient.fetchChat({
         messages: [...messages, userMessage],
+        conversationId: currentId,
       })
 
       if (!response.body) {
@@ -94,6 +125,9 @@ export function useChat() {
           }
         }
       }
+
+      // 流结束后，重新加载消息以获取数据库中的完整数据
+      await loadMessages(currentId)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '发送失败'
       setError(errorMessage)

@@ -1,22 +1,19 @@
-// 消息类型
-export interface Message {
-  id: string
-  role: 'user' | 'assistant' | 'system'
-  content: string
-  createdAt: Date
-}
+/**
+ * 聊天相关类型定义
+ */
 
-// 会话类型
-export interface Conversation {
-  id: string
-  title: string
-  createdAt: Date
-  updatedAt: Date
-}
+import type { Conversation as PrismaConversation, Message as PrismaMessage } from '@prisma/client'
+
+// 消息类型（与 Prisma 模型一致）
+export type Message = PrismaMessage
+
+// 会话类型（与 Prisma 模型一致）
+export type Conversation = PrismaConversation
 
 // 对话请求参数
 export interface ChatParams {
   messages: Message[]
+  conversationId?: string
   model?: string
 }
 

@@ -1,3 +1,7 @@
+/**
+ * 聊天消息列表组件
+ */
+
 'use client'
 
 import { Message } from '@/types/chat'
@@ -19,28 +23,30 @@ export function ChatList({ messages, isLoading = false }: ChatListProps) {
 
   if (messages.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
+      <div className="flex items-center justify-center h-full text-gray-400">
         <p>发送消息开始对话</p>
       </div>
     )
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-6">
-      {messages.map((message, index) => {
-        // 判断是否是最后一条 AI 消息且正在加载
-        const isLastMessage = index === messages.length - 1
-        const isStreaming = isLastMessage && message.role === 'assistant' && isLoading
+    <div className="flex-1 overflow-y-auto">
+      <div className="max-w-3xl mx-auto px-4 py-6">
+        {messages.map((message, index) => {
+          // 判断是否是最后一条 AI 消息且正在加载
+          const isLastMessage = index === messages.length - 1
+          const isStreaming = isLastMessage && message.role === 'assistant' && isLoading
 
-        return (
-          <ChatMessage
-            key={message.id}
-            message={message}
-            isStreaming={isStreaming}
-          />
-        )
-      })}
-      <div ref={bottomRef} />
+          return (
+            <ChatMessage
+              key={message.id}
+              message={message}
+              isStreaming={isStreaming}
+            />
+          )
+        })}
+        <div ref={bottomRef} />
+      </div>
     </div>
   )
 }

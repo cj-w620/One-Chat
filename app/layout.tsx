@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import SessionProvider from '@/components/providers/SessionProvider'
+import { MainLayout } from '@/components/layout/MainLayout'
 
 export const metadata: Metadata = {
   title: 'One Chat - AI 对话助手',
@@ -15,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className="antialiased">
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <MainLayout>{children}</MainLayout>
+        </SessionProvider>
       </body>
     </html>
   )
