@@ -3,6 +3,7 @@
 import { useChat } from '@/hooks/useChat'
 import { ChatList } from '@/components/chat/ChatList'
 import { ChatInput } from '@/components/chat/ChatInput'
+import UserMenu from '@/components/layout/UserMenu'
 
 export default function Home() {
   const { messages, isLoading, error, sendMessage } = useChat()
@@ -10,9 +11,12 @@ export default function Home() {
   return (
     <main className="flex flex-col h-screen max-w-4xl mx-auto">
       {/* Header */}
-      <header className="border-b p-4">
-        <h1 className="text-xl font-semibold">One Chat</h1>
-        <p className="text-sm text-muted-foreground">AI 对话助手</p>
+      <header className="border-b p-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold">One Chat</h1>
+          <p className="text-sm text-muted-foreground">AI 对话助手</p>
+        </div>
+        <UserMenu />
       </header>
 
       {/* Chat Area */}

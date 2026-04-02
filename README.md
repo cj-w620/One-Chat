@@ -71,20 +71,6 @@ npm run dev
 - ✅ 错误处理
 - ✅ API Key 安全（服务端代理）
 
-## 架构说明
-
-### 前端分层
-
-- **表现层** (components/): 纯 UI 组件，不包含业务逻辑
-- **逻辑层** (hooks/): 业务逻辑封装、状态管理
-- **数据层** (client/api-client.ts): API 请求封装
-
-### 后端分层
-
-- **路由层** (app/api/): 接收请求、验证参数
-- **服务层** (server/services/): 业务逻辑编排
-- **外部服务层** (server/clients/): 第三方 API 封装
-
 ## License
 
 MIT
