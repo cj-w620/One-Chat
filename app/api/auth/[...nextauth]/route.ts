@@ -1,11 +1,17 @@
 /**
- * extAuth.js 认证配置
+ * NextAuth.js 认证配置
  */
 
 import NextAuth from 'next-auth'
 import type { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import { findUserByEmail, verifyPassword } from '@/server/services/authService'
+import GitHubProvider from 'next-auth/providers/github'
+import GoogleProvider from 'next-auth/providers/google'
+import {
+  findUserByEmail,
+  verifyPassword,
+  findOrCreateOAuthUser,
+} from '@/server/services/authService'
 
 /**
  * NextAuth 配置选项
@@ -13,11 +19,12 @@ import { findUserByEmail, verifyPassword } from '@/server/services/authService'
  */
 export const authOptions: NextAuthOptions = {
   providers: [
+    // 邮箱密码登录
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
         email: { label: '邮箱', type: 'email' },
-        password: { label: '密码', type: 'password' }
+        password: { label: '密码', type: 'password' },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -47,8 +54,20 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           image: user.avatarUrl,
         }
-      }
-    })
+      },
+    }),
+
+    // GitHub 登录
+    GitHubProvider({
+      clientId: process.env.GITHUB_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    }),
+
+    // Google 登录
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
   ],
   session: {
     strategy: 'jwt',
@@ -59,7 +78,33 @@ export const authOptions: NextAuthOptions = {
     error: '/login',
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async signIn({ user, account, profile }) {
+      // 处理第三方登录
+      if (account?.provider === 'github' || account?.provider === 'google') {
+        try {
+          // 查找或创建 OAuth 用户
+          const dbUser = await findOrCreateOAuthUser(
+            account.provider,
+            account.providerAccountId,
+            {
+              email: user.email!,
+              name: user.name || undefined,
+              avatarUrl: user.image || undefined,
+            }
+          )
+
+          // 更新 user 对象，确保使用数据库中的 ID
+          user.id = dbUser.id
+          return true
+        } catch (error) {
+          console.error('OAuth 登录失败:', error)
+          return false
+        }
+      }
+
+      return true
+    },
+    async jwt({ token, user, account }) {
       // 首次登录时，将用户信息添加到 token
       if (user) {
         token.id = user.id
@@ -78,7 +123,7 @@ export const authOptions: NextAuthOptions = {
         session.user.image = token.picture as string
       }
       return session
-    }
+    },
   },
   secret: process.env.NEXTAUTH_SECRET,
 }

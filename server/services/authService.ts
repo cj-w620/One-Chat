@@ -16,6 +16,15 @@ export interface RegisterParams {
 }
 
 /**
+ * OAuth 用户信息
+ */
+export interface OAuthUserInfo {
+  email: string
+  name?: string
+  avatarUrl?: string
+}
+
+/**
  * 用户注册
  * @param email - 用户邮箱
  * @param password - 用户密码（明文，将被加密）
@@ -52,6 +61,67 @@ export async function register(
   })
 
   // 返回用户信息（不包含密码）
+  const { passwordHash: _, ...userWithoutPassword } = user
+  return userWithoutPassword
+}
+
+/**
+ * 查找或创建 OAuth 用户
+ * @param provider - OAuth 提供商（github/google）
+ * @param providerId - 提供商用户 ID
+ * @param userInfo - 用户信息
+ * @returns 用户对象（不包含密码）
+ * @security 根据 provider + providerId 唯一标识用户
+ */
+export async function findOrCreateOAuthUser(
+  provider: string,
+  providerId: string,
+  userInfo: OAuthUserInfo
+): Promise<Omit<User, 'passwordHash'>> {
+  // 先尝试根据 provider + providerId 查找用户
+  let user = await prisma.user.findFirst({
+    where: {
+      provider,
+      providerId,
+    },
+  })
+
+  // 如果找到用户，返回
+  if (user) {
+    const { passwordHash: _, ...userWithoutPassword } = user
+    return userWithoutPassword
+  }
+
+  // 如果没找到，尝试根据邮箱查找
+  user = await prisma.user.findUnique({
+    where: { email: userInfo.email },
+  })
+
+  // 如果邮箱已存在但是不同的 provider，更新 provider 信息
+  if (user) {
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        provider,
+        providerId,
+        avatarUrl: userInfo.avatarUrl || user.avatarUrl,
+      },
+    })
+    const { passwordHash: _, ...userWithoutPassword } = user
+    return userWithoutPassword
+  }
+
+  // 如果都没找到，创建新用户
+  user = await prisma.user.create({
+    data: {
+      email: userInfo.email,
+      name: userInfo.name || userInfo.email.split('@')[0],
+      avatarUrl: userInfo.avatarUrl,
+      provider,
+      providerId,
+    },
+  })
+
   const { passwordHash: _, ...userWithoutPassword } = user
   return userWithoutPassword
 }
