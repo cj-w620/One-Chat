@@ -1,22 +1,25 @@
 /**
- * 聊天消息列表组件
+ * ChatList - 聊天消息列表组件
+ *
+ * 渲染当前会话的所有消息，新消息到来时自动滚动到底部。
  */
 
 'use client'
 
-import { Message } from '@/types/chat'
-import { ChatMessage } from './ChatMessage'
 import { useEffect, useRef } from 'react'
+import { ChatMessage } from './ChatMessage'
+import type { ChatMessage as ChatMessageType } from '@/features/chat/types/chat'
 
 interface ChatListProps {
-  messages: Message[]
-  isLoading?: boolean
+  messages: ChatMessageType[]
+  /** 是否有消息正在流式接收，用于显示流式光标 */
+  streamingMessageId?: string | null
 }
 
-export function ChatList({ messages, isLoading = false }: ChatListProps) {
+export function ChatList({ messages, streamingMessageId }: ChatListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  // 自动滚动到底部
+  // 新消息到来时自动滚动到底部
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
@@ -32,19 +35,13 @@ export function ChatList({ messages, isLoading = false }: ChatListProps) {
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="max-w-3xl mx-auto px-4 py-6">
-        {messages.map((message, index) => {
-          // 判断是否是最后一条 AI 消息且正在加载
-          const isLastMessage = index === messages.length - 1
-          const isStreaming = isLastMessage && message.role === 'assistant' && isLoading
-
-          return (
-            <ChatMessage
-              key={message.id}
-              message={message}
-              isStreaming={isStreaming}
-            />
-          )
-        })}
+        {messages.map((message) => (
+          <ChatMessage
+            key={message.id}
+            message={message}
+            isStreaming={message.id === streamingMessageId}
+          />
+        ))}
         <div ref={bottomRef} />
       </div>
     </div>

@@ -1,23 +1,28 @@
 /**
- * 聊天输入框组件
+ * ChatInput - 聊天输入框组件
+ *
+ * 支持 Enter 发送（Shift+Enter 换行），流式生成时显示停止按钮。
  */
 
 'use client'
 
 import { useState } from 'react'
-import { Send, Paperclip, Mic } from 'lucide-react'
+import { Send, Paperclip, Mic, Square } from 'lucide-react'
 
 interface ChatInputProps {
   onSend: (content: string) => void
+  /** 流式生成时，点击停止按钮调用 */
+  onStop?: () => void
   disabled?: boolean
 }
 
-export function ChatInput({ onSend, disabled }: ChatInputProps) {
+export function ChatInput({ onSend, onStop, disabled }: ChatInputProps) {
   const [input, setInput] = useState('')
+  const isStreaming = !!onStop
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (input.trim() && !disabled) {
+    if (input.trim() && !disabled && !isStreaming) {
       onSend(input.trim())
       setInput('')
     }
@@ -40,13 +45,10 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="给消息或键入 / 选择技能"
-            disabled={disabled}
+            disabled={isStreaming}
             rows={1}
             className="w-full px-4 pt-3 pb-12 pr-12 resize-none border-none focus:outline-none rounded-2xl max-h-48 overflow-y-auto"
-            style={{
-              minHeight: '102px',
-              height: 'auto',
-            }}
+            style={{ minHeight: '102px', height: 'auto' }}
           />
 
           {/* 底部工具栏 */}
@@ -68,15 +70,26 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
               </button>
             </div>
 
-            {/* 发送按钮 */}
-            <button
-              type="submit"
-              disabled={disabled || !input.trim()}
-              className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              aria-label="发送消息"
-            >
-              <Send className="w-4 h-4 text-gray-600" />
-            </button>
+            {/* 流式中显示停止按钮，否则显示发送按钮 */}
+            {isStreaming ? (
+              <button
+                type="button"
+                onClick={onStop}
+                className="p-2 rounded-lg bg-red-100 hover:bg-red-200 transition-colors"
+                aria-label="停止生成"
+              >
+                <Square className="w-4 h-4 text-red-600" />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={!input.trim()}
+                className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label="发送消息"
+              >
+                <Send className="w-4 h-4 text-gray-600" />
+              </button>
+            )}
           </div>
         </div>
       </form>

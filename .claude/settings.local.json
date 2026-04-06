@@ -4,7 +4,8 @@
       "Bash(npm install:*)",
       "Bash(npx prisma:*)",
       "WebFetch(domain:docs.siliconflow.cn)",
-      "WebSearch"
+      "WebSearch",
+      "Read(//Users/jebfet/server/services/**)"
     ]
   }
 }

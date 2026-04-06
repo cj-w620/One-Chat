@@ -6,10 +6,10 @@ import { ChatInput } from '@/components/chat/ChatInput'
 import { useConversationStore } from '@/store/conversationStore'
 
 export default function Home() {
-  const { messages, isLoading, error, sendMessage } = useChat()
+  const { messages, isLoading, streamingMessageId, sendMessage, abortStream } =
+    useChat()
   const { currentId, conversations } = useConversationStore()
 
-  // 获取当前会话
   const currentConversation = conversations.find((c) => c.id === currentId)
 
   return (
@@ -17,21 +17,19 @@ export default function Home() {
       {/* 顶部标题栏 */}
       <header className="border-b border-gray-200 px-4 py-3">
         <h1 className="text-lg font-semibold text-gray-800">
-          {currentConversation ? currentConversation.title : '请选择或创建一个会话'}
+          {currentConversation
+            ? currentConversation.title
+            : '请选择或创建一个会话'}
         </h1>
       </header>
 
       {/* 聊天区域 */}
       <div className="flex-1 overflow-hidden flex flex-col">
         {currentId ? (
-          <>
-            <ChatList messages={messages} isLoading={isLoading} />
-            {error && (
-              <div className="px-4 py-2 bg-red-50 text-red-600 text-sm border-t border-red-100">
-                {error}
-              </div>
-            )}
-          </>
+          <ChatList
+            messages={messages}
+            streamingMessageId={streamingMessageId}
+          />
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center text-gray-400">
@@ -43,7 +41,13 @@ export default function Home() {
       </div>
 
       {/* 输入框 */}
-      {currentId && <ChatInput onSend={sendMessage} disabled={isLoading} />}
+      {currentId && (
+        <ChatInput
+          onSend={sendMessage}
+          onStop={isLoading ? abortStream : undefined}
+          disabled={false}
+        />
+      )}
     </main>
   )
 }

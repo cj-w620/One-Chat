@@ -1,22 +1,23 @@
+/**
+ * ChatMessage - 单条消息渲染组件
+ *
+ * 支持 text（含流式光标）和 image（点击放大）两种类型。
+ */
+
 'use client'
 
-import { Message } from '@/types/chat'
 import { cn } from '@/lib/utils'
 import { StreamingText } from './StreamingText'
 import ImageMessage from './ImageMessage'
+import type { ChatMessage as ChatMessageType } from '@/features/chat/types/chat'
 
 interface ChatMessageProps {
-  message: Message
+  message: ChatMessageType
   isStreaming?: boolean
 }
 
 export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) {
   const isUser = message.role === 'user'
-
-  // 不渲染 tool 角色的消息（内部使用）
-  if (message.role === 'tool') {
-    return null
-  }
 
   return (
     <div
