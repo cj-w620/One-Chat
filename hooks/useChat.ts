@@ -1,5 +1,5 @@
 /**
- * 聊天 Hook
+ * 聊天 Hook（支持 Function Calling）
  */
 
 'use client'
@@ -45,6 +45,9 @@ export function useChat() {
       content,
       type: 'text',
       imageUrl: null,
+      toolCalls: null,
+      toolCallId: null,
+      name: null,
       createdAt: new Date(),
     }
 
@@ -60,6 +63,9 @@ export function useChat() {
       content: '',
       type: 'text',
       imageUrl: null,
+      toolCalls: null,
+      toolCallId: null,
+      name: null,
       createdAt: new Date(),
     }
 
@@ -81,6 +87,7 @@ export function useChat() {
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
       let accumulatedContent = ''
+      let buffer = ''
 
       while (true) {
         const { done, value } = await reader.read()
@@ -90,25 +97,71 @@ export function useChat() {
         }
 
         // 解码数据块
-        const chunk = decoder.decode(value, { stream: true })
-        const lines = chunk.split('\n')
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+
+        // 保留最后一个不完整的行
+        buffer = lines.pop() || ''
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6).trim()
+          if (!line.trim() || !line.startsWith('data: ')) {
+            continue
+          }
 
-            if (data === '[DONE]') {
-              continue
-            }
+          const data = line.slice(6).trim()
 
-            try {
-              const parsed = JSON.parse(data)
-              const content = parsed.choices?.[0]?.delta?.content
+          if (data === '[DONE]') {
+            continue
+          }
 
+          try {
+            const event = JSON.parse(data)
+
+            // 处理新的 SSE 事件格式
+            if (event.type === 'answer' && event.content) {
+              accumulatedContent += event.content
+
+              // 更新最后一条消息
+              setMessages((prev) => {
+                const newMessages = [...prev]
+                const lastMessage = newMessages[newMessages.length - 1]
+                if (lastMessage && lastMessage.role === 'assistant') {
+                  lastMessage.content = accumulatedContent
+                }
+                return newMessages
+              })
+            } else if (event.type === 'thinking' && event.content) {
+              // 可以选择显示思考内容
+              console.log('AI thinking:', event.content)
+            } else if (event.type === 'tool_call') {
+              console.log('Tool call:', event.name, event)
+            } else if (event.type === 'tool_result') {
+              console.log('Tool result:', event.name, event)
+
+              // 如果是图片生成，显示图片
+              if (event.name === 'generate_image' && event.localUrl) {
+                const imageMessage: Message = {
+                  id: (Date.now() + 2).toString(),
+                  conversationId: currentId,
+                  role: 'assistant',
+                  content: event.prompt || '生成的图片',
+                  type: 'image',
+                  imageUrl: event.localUrl,
+                  toolCalls: null,
+                  toolCallId: null,
+                  name: null,
+                  createdAt: new Date(),
+                }
+                setMessages((prev) => [...prev, imageMessage])
+              }
+            } else if (event.type === 'complete') {
+              console.log('Stream complete')
+            } else {
+              // 兼容旧格式
+              const content = event.choices?.[0]?.delta?.content
               if (content) {
                 accumulatedContent += content
 
-                // 只更新最后一条消息
                 setMessages((prev) => {
                   const newMessages = [...prev]
                   const lastMessage = newMessages[newMessages.length - 1]
@@ -118,16 +171,17 @@ export function useChat() {
                   return newMessages
                 })
               }
-            } catch (e) {
-              // 忽略解析错误
-              console.warn('Failed to parse SSE data:', data)
             }
+          } catch (e) {
+            // 忽略解析错误
+            console.warn('Failed to parse SSE data:', data, e)
           }
         }
       }
 
-      // 流结束后，重新加载消息以获取数据库中的完整数据
-      await loadMessages(currentId)
+      // 流结束后，不重新加载消息，保留前端累积的内容
+      // 注释掉这行以避免覆盖前端显示的消息
+      // await loadMessages(currentId)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '发送失败'
       setError(errorMessage)

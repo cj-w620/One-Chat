@@ -4,6 +4,26 @@
 
 import type { Conversation as PrismaConversation, Message as PrismaMessage } from '@prisma/client'
 
+// 工具调用类型
+export interface ToolCall {
+  id: string
+  type: 'function'
+  function: {
+    name: string
+    arguments: string
+  }
+}
+
+// 工具定义类型
+export interface Tool {
+  type: 'function'
+  function: {
+    name: string
+    description: string
+    parameters: Record<string, any>
+  }
+}
+
 // 消息类型（与 Prisma 模型一致）
 export type Message = PrismaMessage
 

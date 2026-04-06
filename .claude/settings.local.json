@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npm install:*)",
-      "Bash(npx prisma:*)"
+      "Bash(npx prisma:*)",
+      "WebFetch(domain:docs.siliconflow.cn)",
+      "WebSearch"
     ]
   }
 }

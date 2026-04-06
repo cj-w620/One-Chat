@@ -103,20 +103,33 @@ export async function getMessages(
 /**
  * 保存消息到数据库
  * @param conversationId - 会话 ID
- * @param role - 消息角色（user/assistant）
+ * @param role - 消息角色（user/assistant/tool）
  * @param content - 消息内容
+ * @param options - 可选参数（工具调用相关）
  * @returns 创建的消息对象
  */
 export async function saveMessage(
   conversationId: string,
   role: string,
-  content: string
+  content: string,
+  options?: {
+    toolCalls?: any
+    toolCallId?: string
+    name?: string
+    type?: string
+    imageUrl?: string
+  }
 ): Promise<Message> {
   return prisma.message.create({
     data: {
       conversationId,
       role,
       content,
+      type: options?.type || 'text',
+      imageUrl: options?.imageUrl || null,
+      toolCalls: options?.toolCalls || null,
+      toolCallId: options?.toolCallId || null,
+      name: options?.name || null,
     },
   })
 }

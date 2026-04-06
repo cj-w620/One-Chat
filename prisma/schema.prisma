@@ -56,6 +56,9 @@ model Message {
   content        String   @db.Text
   type           String   @default("text")
   imageUrl       String?  @map("image_url")
+  toolCalls      Json?    @map("tool_calls")
+  toolCallId     String?  @map("tool_call_id")
+  name           String?
   createdAt      DateTime @default(now()) @map("created_at")
 
   // 关联关系

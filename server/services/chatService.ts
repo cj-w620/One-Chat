@@ -1,20 +1,17 @@
 /**
- * AI 对话服务
+ * AI 对话服务（支持 Function Calling）
  */
 
 import { Message } from '@/types/chat'
 import { siliconflowClient } from '@/server/clients/siliconflowClient'
-import { saveMessage } from './conversationService'
+import { ensureToolsReady, getToolRegistry } from '@/server/tools'
+import { createSSEStreamWithTools } from './stream-handler'
 
 class ChatService {
   private defaultModel = 'Qwen/Qwen2.5-7B-Instruct'
 
   /**
-   * 处理流式对话请求
-   * @param messages - 消息历史
-   * @param conversationId - 会话 ID（用于保存消息）
-   * @param model - 模型名称
-   * @returns 流式响应
+   * 处理流式对话请求（支持工具调用）
    */
   async streamChat(params: {
     messages: Message[]
@@ -22,55 +19,49 @@ class ChatService {
     model?: string
   }): Promise<ReadableStream> {
     const model = params.model || this.defaultModel
-    const { conversationId } = params
+    const { conversationId, messages } = params
 
-    // 调用硅基流动流式 API
+    await ensureToolsReady()
+
+    const toolRegistry = getToolRegistry()
+    const toolDefinitions = toolRegistry.getToolDefinitions()
+
+    console.log(`Available tools: ${toolDefinitions.length}`)
+
+    // 添加系统提示（如果第一条消息不是 system）
+    let messagesWithSystem = [...messages]
+    if (messages.length === 0 || messages[0].role !== 'system') {
+      const systemMessage: Message = {
+        id: 'system',
+        conversationId: conversationId || '',
+        role: 'system',
+        content: '你是一个有用的 AI 助手。当需要最新信息时使用 web_search 工具，当需要生成图片时使用 generate_image 工具。重要：不要在回复中输出 <tool_call> 或其他 XML 标签，直接使用工具调用功能。',
+        type: 'text',
+        imageUrl: null,
+        toolCalls: null,
+        toolCallId: null,
+        name: null,
+        createdAt: new Date(),
+      }
+      messagesWithSystem = [systemMessage, ...messages]
+    }
+
     const stream = await siliconflowClient.chatStream({
       model,
-      messages: params.messages,
+      messages: messagesWithSystem,
+      tools: toolDefinitions,
     })
 
-    // 创建转换流，收集完整响应并保存到数据库
-    let fullResponse = ''
-    const transformStream = new TransformStream({
-      async transform(chunk, controller) {
-        // 解析 SSE 数据
-        const text = new TextDecoder().decode(chunk)
-        const lines = text.split('\n')
+    const reader = stream.getReader()
+    if (!reader) {
+      throw new Error('Failed to get response reader')
+    }
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6)
-            if (data === '[DONE]') continue
-
-            try {
-              const json = JSON.parse(data)
-              const content = json.choices?.[0]?.delta?.content
-              if (content) {
-                fullResponse += content
-              }
-            } catch (e) {
-              // 忽略解析错误
-            }
-          }
-        }
-
-        // 直接传递原始数据块
-        controller.enqueue(chunk)
-      },
-      async flush() {
-        // 流结束时保存消息到数据库
-        if (conversationId && fullResponse) {
-          try {
-            await saveMessage(conversationId, 'assistant', fullResponse)
-          } catch (error) {
-            console.error('保存消息失败:', error)
-          }
-        }
-      },
+    return createSSEStreamWithTools(reader, {
+      model,
+      messages: messagesWithSystem,
+      conversationId,
     })
-
-    return stream.pipeThrough(transformStream)
   }
 
   /**
@@ -82,7 +73,6 @@ class ChatService {
   }): Promise<{ content: string }> {
     const model = params.model || this.defaultModel
 
-    // 调用硅基流动 API
     const response = await siliconflowClient.chat({
       model,
       messages: params.messages,

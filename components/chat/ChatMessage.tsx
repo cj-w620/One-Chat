@@ -3,6 +3,7 @@
 import { Message } from '@/types/chat'
 import { cn } from '@/lib/utils'
 import { StreamingText } from './StreamingText'
+import ImageMessage from './ImageMessage'
 
 interface ChatMessageProps {
   message: Message
@@ -11,6 +12,11 @@ interface ChatMessageProps {
 
 export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) {
   const isUser = message.role === 'user'
+
+  // 不渲染 tool 角色的消息（内部使用）
+  if (message.role === 'tool') {
+    return null
+  }
 
   return (
     <div
@@ -27,13 +33,17 @@ export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) 
             : 'bg-muted text-foreground'
         )}
       >
-        <p className="text-sm whitespace-pre-wrap break-words">
-          {isUser ? (
-            message.content
-          ) : (
-            <StreamingText content={message.content} isStreaming={isStreaming} />
-          )}
-        </p>
+        {message.type === 'image' && message.imageUrl ? (
+          <ImageMessage imageUrl={message.imageUrl} prompt={message.content} />
+        ) : (
+          <p className="text-sm whitespace-pre-wrap break-words break-all">
+            {isUser ? (
+              message.content
+            ) : (
+              <StreamingText content={message.content} isStreaming={isStreaming} />
+            )}
+          </p>
+        )}
       </div>
     </div>
   )
